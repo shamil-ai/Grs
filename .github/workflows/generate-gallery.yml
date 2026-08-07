@@ -1,9 +1,12 @@
-name: Auto Generate Gallery JSON
+Name: Auto Generate Gallery JSON
 
 on:
   push:
     paths:
-      - 'manhajul/**'
+      - '**/*.jpg'
+      - '**/*.jpeg'
+      - '**/*.png'
+      - '**/*.webp'
 
 permissions:
   contents: write
@@ -20,18 +23,29 @@ jobs:
           node -e '
           const fs = require("fs");
           const path = require("path");
-          const dir = "manhajul";
-          if (fs.existsSync(dir)) {
+
+          const ignoredDirs = [".git", ".github", "node_modules"];
+
+          const getDirectories = srcPath =>
+            fs.readdirSync(srcPath, { withFileTypes: true })
+              .filter(dirent => dirent.isDirectory() && !ignoredDirs.includes(dirent.name))
+              .map(dirent => dirent.name);
+
+          const dirs = getDirectories(".");
+
+          dirs.forEach(dir => {
             const files = fs.readdirSync(dir).filter(file => /\.(jpg|jpeg|png|webp)$/i.test(file));
-            const galleryData = { "manhajul": files };
-            fs.writeFileSync("manhajul/gallery.json", JSON.stringify(galleryData, null, 2));
-            console.log("gallery.json generated successfully with " + files.length + " images.");
-          }
+            if (files.length > 0) {
+              const galleryData = { [dir]: files };
+              fs.writeFileSync(path.join(dir, "gallery.json"), JSON.stringify(galleryData, null, 2));
+              console.log(`gallery.json generated for ${dir} with ${files.length} images.`);
+            }
+          });
           '
 
       - name: Commit and push changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Auto-generate gallery.json"
-          file_pattern: "manhajul/gallery.json"
+          file_pattern: "**/gallery.json"
           
