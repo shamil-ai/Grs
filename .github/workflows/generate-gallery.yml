@@ -7,7 +7,7 @@ on:
       - 'manhajul/**/*.jpeg'
       - 'manhajul/**/*.png'
       - 'manhajul/**/*.webp'
-  workflow_dispatch: # ഇത് നൽകിയാൽ നിങ്ങൾക്ക് എപ്പോൾ വേണമെങ്കിലും ഗിറ്റ്ഹബ്ബിൽ നിന്ന് മാനുവൽ ആയി റൺ ചെയ്യാം
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -65,3 +65,4 @@ jobs:
         with:
           commit_message: "Auto-generate gallery.json with perfect paths"
           file_pattern: "manhajul/gallery.json"
+          
