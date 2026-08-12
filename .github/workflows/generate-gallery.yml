@@ -7,6 +7,7 @@ on:
       - 'manhajul/**/*.jpeg'
       - 'manhajul/**/*.png'
       - 'manhajul/**/*.webp'
+  workflow_dispatch: # ഇത് നൽകിയാൽ നിങ്ങൾക്ക് എപ്പോൾ വേണമെങ്കിലും ഗിറ്റ്ഹബ്ബിൽ നിന്ന് മാനുവൽ ആയി റൺ ചെയ്യാം
 
 permissions:
   contents: write
@@ -24,13 +25,11 @@ jobs:
           const fs = require("fs");
           const path = require("path");
 
-          // ഫോട്ടോകൾ ഉള്ള പ്രധാന ഫോൾഡർ
           const targetDir = "manhajul"; 
           const outputFile = path.join(targetDir, "gallery.json");
 
           let galleryData = {};
 
-          // ഫയലുകളും ഫോൾഡറുകളും സ്കാൻ ചെയ്യാനുള്ള ഫങ്ഷൻ
           function scanDirectory(dir, baseFolder = "") {
             if (!fs.existsSync(dir)) return;
 
@@ -38,25 +37,20 @@ jobs:
 
             items.forEach(item => {
               if (item.isDirectory()) {
-                // സബ്-ഫോൾഡറുകൾ ഉണ്ടെങ്കിൽ അവയും സ്കാൻ ചെയ്യുക
                 scanDirectory(path.join(dir, item.name), item.name);
               } else {
-                // ചിത്രങ്ങൾ (png, jpg, jpeg, webp) മാത്രം തിരഞ്ഞെടുക്കുക
                 if (/\.(jpg|jpeg|png|webp)$/i.test(item.name)) {
-                  // ചിത്രങ്ങൾ നേരിട്ട് manhajul ഫോൾഡറിലാണെങ്കിൽ "main" എന്ന് പേര് നൽകുന്നു
                   const folderKey = baseFolder || "main"; 
                   
                   if (!galleryData[folderKey]) {
                     galleryData[folderKey] = [];
                   }
-                  // ഫയലിന്റെ പേര് (സ്പേസ് ഉണ്ടെങ്കിലും) അതുപോലെ തന്നെ സേവ് ചെയ്യുന്നു
                   galleryData[folderKey].push(item.name);
                 }
               }
             });
           }
 
-          // ഫോൾഡർ ഉണ്ടോ എന്ന് പരിശോധിച്ച് JSON ഉണ്ടാക്കുന്നു
           if (fs.existsSync(targetDir)) {
             scanDirectory(targetDir);
             fs.writeFileSync(outputFile, JSON.stringify(galleryData, null, 2));
