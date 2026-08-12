@@ -3,10 +3,10 @@ Name: Auto Generate Gallery JSON
 on:
   push:
     paths:
-      - '**/*.jpg'
-      - '**/*.jpeg'
-      - '**/*.png'
-      - '**/*.webp'
+      - 'manhajul/**/*.jpg'
+      - 'manhajul/**/*.jpeg'
+      - 'manhajul/**/*.png'
+      - 'manhajul/**/*.webp'
 
 permissions:
   contents: write
@@ -24,28 +24,30 @@ jobs:
           const fs = require("fs");
           const path = require("path");
 
-          const ignoredDirs = [".git", ".github", "node_modules"];
-
-          const getDirectories = srcPath =>
-            fs.readdirSync(srcPath, { withFileTypes: true })
-              .filter(dirent => dirent.isDirectory() && !ignoredDirs.includes(dirent.name))
+          const targetDir = "manhajul"; // നിങ്ങളുടെ ഫോട്ടോകൾ ഉള്ള ഫോൾഡർ പേര്
+          if (fs.existsSync(targetDir)) {
+            const subDirs = fs.readdirSync(targetDir, { withFileTypes: true })
+              .filter(dirent => dirent.isDirectory())
               .map(dirent => dirent.name);
 
-          const dirs = getDirectories(".");
-
-          dirs.forEach(dir => {
-            const files = fs.readdirSync(dir).filter(file => /\.(jpg|jpeg|png|webp)$/i.test(file));
-            if (files.length > 0) {
-              const galleryData = { [dir]: files };
-              fs.writeFileSync(path.join(dir, "gallery.json"), JSON.stringify(galleryData, null, 2));
-              console.log(`gallery.json generated for ${dir} with ${files.length} images.`);
-            }
-          });
+            subDirs.forEach(subDir => {
+              const fullDirPath = path.join(targetDir, subDir);
+              const files = fs.readdirSync(fullDirPath).filter(file => /\.(jpg|jpeg|png|webp)$/i.test(file));
+              
+              if (files.length > 0) {
+                // ഫോൾഡർ പേര് സഹിതം ഫയലുകൾ സേവ് ചെയ്യുന്നു
+                const filePaths = files.map(file => `${subDir}/${file}`);
+                const galleryData = { [subDir]: filePaths };
+                
+                fs.writeFileSync(path.join(fullDirPath, "gallery.json"), JSON.stringify(galleryData, null, 2));
+                console.log(`gallery.json generated for ${subDir} with ${files.length} images.`);
+              }
+            });
+          }
           '
 
       - name: Commit and push changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Auto-generate gallery.json"
-          file_pattern: "**/gallery.json"
-          
+          commit_message: "Auto-generate gallery.json for subfolders"
+          file_pattern: "manhajul/**/gallery.json"
