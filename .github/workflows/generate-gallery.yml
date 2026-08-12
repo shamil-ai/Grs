@@ -1,4 +1,4 @@
-Name: Auto Generate Gallery JSON
+name: Auto Generate Gallery JSON
 
 on:
   push:
@@ -24,30 +24,50 @@ jobs:
           const fs = require("fs");
           const path = require("path");
 
-          const targetDir = "manhajul"; // നിങ്ങളുടെ ഫോട്ടോകൾ ഉള്ള ഫോൾഡർ പേര്
-          if (fs.existsSync(targetDir)) {
-            const subDirs = fs.readdirSync(targetDir, { withFileTypes: true })
-              .filter(dirent => dirent.isDirectory())
-              .map(dirent => dirent.name);
+          // ഫോട്ടോകൾ ഉള്ള പ്രധാന ഫോൾഡർ
+          const targetDir = "manhajul"; 
+          const outputFile = path.join(targetDir, "gallery.json");
 
-            subDirs.forEach(subDir => {
-              const fullDirPath = path.join(targetDir, subDir);
-              const files = fs.readdirSync(fullDirPath).filter(file => /\.(jpg|jpeg|png|webp)$/i.test(file));
-              
-              if (files.length > 0) {
-                // ഫോൾഡർ പേര് സഹിതം ഫയലുകൾ സേവ് ചെയ്യുന്നു
-                const filePaths = files.map(file => `${subDir}/${file}`);
-                const galleryData = { [subDir]: filePaths };
-                
-                fs.writeFileSync(path.join(fullDirPath, "gallery.json"), JSON.stringify(galleryData, null, 2));
-                console.log(`gallery.json generated for ${subDir} with ${files.length} images.`);
+          let galleryData = {};
+
+          // ഫയലുകളും ഫോൾഡറുകളും സ്കാൻ ചെയ്യാനുള്ള ഫങ്ഷൻ
+          function scanDirectory(dir, baseFolder = "") {
+            if (!fs.existsSync(dir)) return;
+
+            const items = fs.readdirSync(dir, { withFileTypes: true });
+
+            items.forEach(item => {
+              if (item.isDirectory()) {
+                // സബ്-ഫോൾഡറുകൾ ഉണ്ടെങ്കിൽ അവയും സ്കാൻ ചെയ്യുക
+                scanDirectory(path.join(dir, item.name), item.name);
+              } else {
+                // ചിത്രങ്ങൾ (png, jpg, jpeg, webp) മാത്രം തിരഞ്ഞെടുക്കുക
+                if (/\.(jpg|jpeg|png|webp)$/i.test(item.name)) {
+                  // ചിത്രങ്ങൾ നേരിട്ട് manhajul ഫോൾഡറിലാണെങ്കിൽ "main" എന്ന് പേര് നൽകുന്നു
+                  const folderKey = baseFolder || "main"; 
+                  
+                  if (!galleryData[folderKey]) {
+                    galleryData[folderKey] = [];
+                  }
+                  // ഫയലിന്റെ പേര് (സ്പേസ് ഉണ്ടെങ്കിലും) അതുപോലെ തന്നെ സേവ് ചെയ്യുന്നു
+                  galleryData[folderKey].push(item.name);
+                }
               }
             });
+          }
+
+          // ഫോൾഡർ ഉണ്ടോ എന്ന് പരിശോധിച്ച് JSON ഉണ്ടാക്കുന്നു
+          if (fs.existsSync(targetDir)) {
+            scanDirectory(targetDir);
+            fs.writeFileSync(outputFile, JSON.stringify(galleryData, null, 2));
+            console.log("gallery.json generated successfully!");
+          } else {
+            console.error("Directory not found:", targetDir);
           }
           '
 
       - name: Commit and push changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Auto-generate gallery.json for subfolders"
-          file_pattern: "manhajul/**/gallery.json"
+          commit_message: "Auto-generate gallery.json with perfect paths"
+          file_pattern: "manhajul/gallery.json"
