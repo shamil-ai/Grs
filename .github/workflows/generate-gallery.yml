@@ -3,10 +3,11 @@ name: Auto Generate Gallery JSON
 on:
   push:
     paths:
-      - "manhajul/**/*.jpg"
-      - "manhajul/**/*.jpeg"
-      - "manhajul/**/*.png"
-      - "manhajul/**/*.webp"
+      - "alif-*/**/*.jpg"
+      - "alif-*/**/*.jpeg"
+      - "alif-*/**/*.png"
+      - "alif-*/**/*.webp"
+      - ".github/workflows/generate-gallery.yml"
   workflow_dispatch:
 
 permissions:
@@ -26,46 +27,31 @@ jobs:
             const fs = require('fs');
             const path = require('path');
 
-            const targetDir = "manhajul";
-            const outputFile = path.join(targetDir, 'gallery.json');
-
+            const outputFile = 'gallery.json';
             let galleryData = {};
 
-            function scanDirectory(dir, baseFolder = "") {
-              if (!fs.existsSync(dir)) return;
-
-              const items = fs.readdirSync(dir, { withFileTypes: true });
-
-              items.forEach(item => {
-                if (item.isDirectory()) {
-                  // സബ്-ഫോൾഡറുകളിലേക്ക് (ഉദാഹരണത്തിന് alif-2-0) പോകുമ്പോൾ ആ ഫോൾഡറിന്റെ പേര് ഉപയോഗിക്കുന്നു
-                  scanDirectory(path.join(dir, item.name), item.name);
-                } else {
-                  // ചിത്രങ്ങൾ മാത്രമാണോ എന്ന് പരിശോധിക്കുന്നു
-                  if (/\.(jpg|jpeg|png|webp)$/i.test(item.name)) {
-                    const folderKey = baseFolder || "main";
-                    
-                    if (!galleryData[folderKey]) {
-                      galleryData[folderKey] = [];
-                    }
-                    
-                    galleryData[folderKey].push(item.name);
+            // സ്കാൻ ചെയ്യേണ്ടത് മെയിൻ ഡയറക്ടറിയിൽ തന്നെയാണ്
+            const items = fs.readdirSync('.', { withFileTypes: true });
+            
+            items.forEach(item => {
+              if (item.isDirectory() && item.name.startsWith('alif-')) {
+                const folderName = item.name;
+                galleryData[folderName] = [];
+                
+                const files = fs.readdirSync(folderName);
+                files.forEach(file => {
+                  if (/\.(jpg|jpeg|png|webp)$/i.test(file)) {
+                    galleryData[folderName].push(file);
                   }
-                }
-              });
-            }
+                });
+              }
+            });
 
-            if (fs.existsSync(targetDir)) {
-              scanDirectory(targetDir);
-              fs.writeFileSync(outputFile, JSON.stringify(galleryData, null, 2));
-              console.log('Gallery JSON generated successfully!');
-            } else {
-              console.error(`Directory not found: ${targetDir}`);
-            }
+            fs.writeFileSync(outputFile, JSON.stringify(galleryData, null, 2));
+            console.log('Gallery JSON generated successfully in root directory!');
 
       - name: Commit and push changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Auto-generate gallery JSON with perfect folder paths"
-          file_pattern: "manhajul/gallery.json"
-          
+          commit_message: "Auto-generate gallery JSON directly in root"
+          file_pattern: "gallery.json"
