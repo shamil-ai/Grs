@@ -3,10 +3,10 @@ name: Auto Generate Gallery JSON
 on:
   push:
     paths:
-      - 'manhajul/**/*.jpg'
-      - 'manhajul/**/*.jpeg'
-      - 'manhajul/**/*.png'
-      - 'manhajul/**/*.webp'
+      - "manhajul/**/*.jpg"
+      - "manhajul/**/*.jpeg"
+      - "manhajul/**/*.png"
+      - "manhajul/**/*.webp"
   workflow_dispatch:
 
 permissions:
@@ -20,49 +20,52 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Generate Gallery JSON
-        run: |
-          node -e '
-          const fs = require("fs");
-          const path = require("path");
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
 
-          const targetDir = "manhajul"; 
-          const outputFile = path.join(targetDir, "gallery.json");
+            const targetDir = "manhajul";
+            const outputFile = path.join(targetDir, 'gallery.json');
 
-          let galleryData = {};
+            let galleryData = {};
 
-          function scanDirectory(dir, baseFolder = "") {
-            if (!fs.existsSync(dir)) return;
+            function scanDirectory(dir, baseFolder = "") {
+              if (!fs.existsSync(dir)) return;
 
-            const items = fs.readdirSync(dir, { withFileTypes: true });
+              const items = fs.readdirSync(dir, { withFileTypes: true });
 
-            items.forEach(item => {
-              if (item.isDirectory()) {
-                scanDirectory(path.join(dir, item.name), item.name);
-              } else {
-                if (/\.(jpg|jpeg|png|webp)$/i.test(item.name)) {
-                  const folderKey = baseFolder || "main"; 
-                  
-                  if (!galleryData[folderKey]) {
-                    galleryData[folderKey] = [];
+              items.forEach(item => {
+                if (item.isDirectory()) {
+                  // സബ്-ഫോൾഡറുകളിലേക്ക് (ഉദാഹരണത്തിന് alif-2-0) പോകുമ്പോൾ ആ ഫോൾഡറിന്റെ പേര് ഉപയോഗിക്കുന്നു
+                  scanDirectory(path.join(dir, item.name), item.name);
+                } else {
+                  // ചിത്രങ്ങൾ മാത്രമാണോ എന്ന് പരിശോധിക്കുന്നു
+                  if (/\.(jpg|jpeg|png|webp)$/i.test(item.name)) {
+                    const folderKey = baseFolder || "main";
+                    
+                    if (!galleryData[folderKey]) {
+                      galleryData[folderKey] = [];
+                    }
+                    
+                    galleryData[folderKey].push(item.name);
                   }
-                  galleryData[folderKey].push(item.name);
                 }
-              }
-            });
-          }
+              });
+            }
 
-          if (fs.existsSync(targetDir)) {
-            scanDirectory(targetDir);
-            fs.writeFileSync(outputFile, JSON.stringify(galleryData, null, 2));
-            console.log("gallery.json generated successfully!");
-          } else {
-            console.error("Directory not found:", targetDir);
-          }
-          '
+            if (fs.existsSync(targetDir)) {
+              scanDirectory(targetDir);
+              fs.writeFileSync(outputFile, JSON.stringify(galleryData, null, 2));
+              console.log('Gallery JSON generated successfully!');
+            } else {
+              console.error(`Directory not found: ${targetDir}`);
+            }
 
       - name: Commit and push changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Auto-generate gallery.json with perfect paths"
+          commit_message: "Auto-generate gallery JSON with perfect folder paths"
           file_pattern: "manhajul/gallery.json"
           
